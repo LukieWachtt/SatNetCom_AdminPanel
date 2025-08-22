@@ -1,0 +1,48 @@
+{
+  "project_info": {
+    "project_number": "642030263409",
+    "project_id": "snc-customer-service",
+    "storage_bucket": "snc-customer-service.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:642030263409:android:aa99829c8decc672aacfd0",
+        "android_client_info": {
+          "package_name": "com.example.snc_cs_client"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDQlPWSIm4YRBF0pdwTt81UBv7sOw4oMJA"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:642030263409:android:0afd64a0028a5327aacfd0",
+        "android_client_info": {
+          "package_name": "com.example.ui_satnetcom_customer_services"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDQlPWSIm4YRBF0pdwTt81UBv7sOw4oMJA"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

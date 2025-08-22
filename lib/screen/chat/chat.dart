@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:ui_satnetcom_customer_services/provider/chat_provider.dart';
 
 class ChatScreen extends StatefulWidget {
@@ -14,16 +15,22 @@ class ChatScreen extends StatefulWidget {
 class _ChatScreenState extends State<ChatScreen> {
   bool _showStatusMenu = false;
   final TextEditingController _controller = TextEditingController();
-  List<Map<String, dynamic>> messages = [];
 
-  void _sendMessage() {
+  Future<void> _sendMessage() async {
     final text = _controller.text.trim();
     if (text.isEmpty) return;
 
-    setState(() {
-      messages.add({'message': text, 'isUser': true});
-      _controller.clear();
-    });
+    await FirebaseFirestore.instance
+        .collection('complaints')
+        .doc(widget.ticketNo)
+        .collection('messages')
+        .add({
+          'message': text,
+          'sender': 'admin',
+          'timestamp': FieldValue.serverTimestamp(),
+        });
+
+    _controller.clear();
   }
 
   @override
@@ -50,35 +57,83 @@ class _ChatScreenState extends State<ChatScreen> {
           Column(
             children: [
               Expanded(
-                child: ListView.builder(
-                  itemCount: messages.length,
-                  itemBuilder: (context, index) {
-                    final message = messages[index];
-                    return Align(
-                      alignment: message['isUser']
-                          ? Alignment.centerRight
-                          : Alignment.centerLeft,
-                      child: Container(
-                        padding: const EdgeInsets.all(12),
-                        margin: const EdgeInsets.all(8),
-                        decoration: BoxDecoration(
-                          color:
-                              message['isUser'] ? Colors.green : Colors.white,
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        child: Text(
-                          message['message'],
-                          style: TextStyle(
-                            color: message['isUser']
-                                ? Colors.white
-                                : Colors.black,
+                child: StreamBuilder<QuerySnapshot>(
+                  stream: FirebaseFirestore.instance
+                      .collection('complaints')
+                      .doc(widget.ticketNo)
+                      .collection('messages')
+                      .orderBy('timestamp', descending: false)
+                      .snapshots(),
+                  builder: (context, snapshot) {
+                    if (!snapshot.hasData) {
+                      return const Center(child: CircularProgressIndicator());
+                    }
+
+                    final docs = snapshot.data!.docs;
+
+                    return ListView.builder(
+                      itemCount: docs.length,
+                      itemBuilder: (context, index) {
+                        final message = docs[index];
+                        final data = message.data() as Map<String, dynamic>;
+
+                        final String senderType =
+                            data['sender'] as String? ?? 'user';
+
+                        final bool isMessageFromAdmin = (senderType == 'admin');
+
+                        return Align(
+                          alignment: isMessageFromAdmin
+                              ? Alignment.centerRight
+                              : Alignment.centerLeft,
+                          child: Container(
+                            // ======== THIS IS THE CHANGE! ========
+                            padding: const EdgeInsets.all(
+                              16,
+                            ), // Increased from 12 to 16
+                            // =====================================
+                            margin: const EdgeInsets.all(8),
+                            decoration: BoxDecoration(
+                              color: isMessageFromAdmin
+                                  ? Colors.green
+                                  : Colors.white,
+                               borderRadius: 
+                                isMessageFromAdmin ? BorderRadius.only(
+                                  topLeft: Radius.circular(10),
+                                  topRight: Radius.circular(10),
+                                  bottomLeft: Radius.circular(10),
+                                ) : BorderRadius.only(
+                                  topLeft: Radius.circular(10),
+                                  topRight: Radius.circular(10),
+                                  bottomRight: Radius.circular(10),
+                                ),
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: Colors.grey.withOpacity(0.5),
+                                    spreadRadius: 2,
+                                    blurRadius: 5,
+                                    offset: const Offset(0, 3),
+                                  ),
+                                ]
+                            ),
+                            child: Text(
+                              data['message'] ?? '',
+                              style: TextStyle(
+                                fontSize: 20,
+                                color: isMessageFromAdmin
+                                    ? const Color.fromARGB(255, 243, 243, 243)
+                                    : Colors.black,
+                              ),
+                            ),
                           ),
-                        ),
-                      ),
+                        );
+                      },
                     );
                   },
                 ),
               ),
+
+              // Input field
               Padding(
                 padding: const EdgeInsets.all(8.0),
                 child: TextField(
@@ -94,6 +149,8 @@ class _ChatScreenState extends State<ChatScreen> {
               ),
             ],
           ),
+
+          // Status menu
           if (_showStatusMenu)
             Positioned(
               top: 0,
@@ -115,10 +172,15 @@ class _ChatScreenState extends State<ChatScreen> {
                         ),
                         onPressed: () {
                           chatProvider.updateStatus(
-                              widget.ticketNo, 'Unresolved');
+                            widget.ticketNo,
+                            'Unresolved',
+                          );
                           setState(() => _showStatusMenu = false);
                         },
-                        child: const Text("Unresolved", style: TextStyle(fontSize: 20 ,color: Colors.white)),
+                        child: const Text(
+                          "Unresolved",
+                          style: TextStyle(fontSize: 20, color: Colors.white),
+                        ),
                       ),
                     ),
                     const SizedBox(height: 8),
@@ -133,7 +195,10 @@ class _ChatScreenState extends State<ChatScreen> {
                           chatProvider.updateStatus(widget.ticketNo, 'Solved');
                           setState(() => _showStatusMenu = false);
                         },
-                        child: const Text("Solved", style: TextStyle(fontSize: 20 ,color: Colors.white)),
+                        child: const Text(
+                          "Solved",
+                          style: TextStyle(fontSize: 20, color: Colors.white),
+                        ),
                       ),
                     ),
                   ],

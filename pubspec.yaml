@@ -11,6 +11,10 @@ dependencies:
     sdk: flutter
   connectivity_plus: ^6.0.3
   provider: ^6.1.1
+  firebase_core: ^2.24.2 # Essential for all Firebase products
+  cloud_firestore: ^4.13.6 # For your database
+  firebase_auth: ^4.15.2 # For authentication
+  firebase_messaging: ^14.7.9 # For notifications/pop-ups
 
 dev_dependencies:
   flutter_test:
