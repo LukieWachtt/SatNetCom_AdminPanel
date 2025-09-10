@@ -16,21 +16,39 @@ class _ChatScreenState extends State<ChatScreen> {
   bool _showStatusMenu = false;
   final TextEditingController _controller = TextEditingController();
 
+  @override
+  void initState() {
+    super.initState();
+    print('=== CHAT SCREEN DEBUG ===');
+    print('Document ID: "${widget.ticketNo}"');
+    print('Document path: complaints/${widget.ticketNo}/messages');
+  }
+
   Future<void> _sendMessage() async {
     final text = _controller.text.trim();
     if (text.isEmpty) return;
 
-    await FirebaseFirestore.instance
-        .collection('complaints')
-        .doc(widget.ticketNo)
-        .collection('messages')
-        .add({
-          'message': text,
-          'sender': 'admin',
-          'timestamp': FieldValue.serverTimestamp(),
-        });
+    try {
+      print('Sending message to document: ${widget.ticketNo}');
 
-    _controller.clear();
+      await FirebaseFirestore.instance
+          .collection('complaints')
+          .doc(widget.ticketNo) // Use document ID directly
+          .collection('messages')
+          .add({
+            'message': text,
+            'sender': 'admin',
+            'timestamp': FieldValue.serverTimestamp(),
+          });
+
+      print('Message sent successfully!');
+      _controller.clear();
+    } catch (e) {
+      print('Error sending message: $e');
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error: $e'), backgroundColor: Colors.red),
+      );
+    }
   }
 
   @override
@@ -54,59 +72,75 @@ class _ChatScreenState extends State<ChatScreen> {
       ),
       body: Stack(
         children: [
-          Column(
-            children: [
-              Expanded(
-                child: StreamBuilder<QuerySnapshot>(
-                  stream: FirebaseFirestore.instance
-                      .collection('complaints')
-                      .doc(widget.ticketNo)
-                      .collection('messages')
-                      .orderBy('timestamp', descending: false)
-                      .snapshots(),
-                  builder: (context, snapshot) {
-                    if (!snapshot.hasData) {
-                      return const Center(child: CircularProgressIndicator());
-                    }
+          Padding(
+            padding: const EdgeInsetsDirectional.symmetric(horizontal: 10),
+            child: Column(
+              children: [
+                Expanded(
+                  child: StreamBuilder<QuerySnapshot>(
+                    stream: FirebaseFirestore.instance
+                        .collection('complaints')
+                        .doc(widget.ticketNo) // Use document ID directly
+                        .collection('messages')
+                        .orderBy('timestamp', descending: false)
+                        .snapshots(),
+                    builder: (context, snapshot) {
+                      if (snapshot.hasError) {
+                        print('Stream error: ${snapshot.error}');
+                        return Center(child: Text('Error: ${snapshot.error}'));
+                      }
 
-                    final docs = snapshot.data!.docs;
+                      if (!snapshot.hasData) {
+                        return const Center(child: CircularProgressIndicator());
+                      }
 
-                    return ListView.builder(
-                      itemCount: docs.length,
-                      itemBuilder: (context, index) {
-                        final message = docs[index];
-                        final data = message.data() as Map<String, dynamic>;
+                      final docs = snapshot.data!.docs;
+                      print('Found ${docs.length} messages for ticket ${widget.ticketNo}');
 
-                        final String senderType =
-                            data['sender'] as String? ?? 'user';
+                      if (docs.isEmpty) {
+                        return const Center(
+                          child: Text('No messages yet. Start the conversation!'),
+                        );
+                      }
 
-                        final bool isMessageFromAdmin = (senderType == 'admin');
+                      return ListView.builder(
+                        itemCount: docs.length,
+                        itemBuilder: (context, index) {
+                          final message = docs[index];
+                          final data = message.data() as Map<String, dynamic>;
+                          final String senderType =
+                              data['sender'] as String? ?? 'admin';
+                          final bool isMessageFromCustomer =
+                              (senderType == 'admin');
 
-                        return Align(
-                          alignment: isMessageFromAdmin
-                              ? Alignment.centerRight
-                              : Alignment.centerLeft,
-                          child: Container(
-                            // ======== THIS IS THE CHANGE! ========
-                            padding: const EdgeInsets.all(
-                              16,
-                            ), // Increased from 12 to 16
-                            // =====================================
-                            margin: const EdgeInsets.all(8),
-                            decoration: BoxDecoration(
-                              color: isMessageFromAdmin
-                                  ? Colors.green
-                                  : Colors.white,
-                               borderRadius: 
-                                isMessageFromAdmin ? BorderRadius.only(
-                                  topLeft: Radius.circular(10),
-                                  topRight: Radius.circular(10),
-                                  bottomLeft: Radius.circular(10),
-                                ) : BorderRadius.only(
-                                  topLeft: Radius.circular(10),
-                                  topRight: Radius.circular(10),
-                                  bottomRight: Radius.circular(10),
-                                ),
+                          return Align(
+                            alignment: isMessageFromCustomer
+                                ? Alignment.centerRight
+                                : Alignment.centerLeft,
+                            child: Container(
+                              margin: const EdgeInsets.symmetric(
+                                vertical: 4,
+                                horizontal: 8,
+                              ),
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 12,
+                                vertical: 8,
+                              ),
+                              decoration: BoxDecoration(
+                                color: isMessageFromCustomer
+                                    ? Colors.blue
+                                    : Colors.grey[300],
+                                borderRadius: isMessageFromCustomer
+                                    ? const BorderRadius.only(
+                                        topLeft: Radius.circular(10),
+                                        topRight: Radius.circular(10),
+                                        bottomLeft: Radius.circular(10),
+                                      )
+                                    : const BorderRadius.only(
+                                        topLeft: Radius.circular(10),
+                                        topRight: Radius.circular(10),
+                                        bottomRight: Radius.circular(10),
+                                      ),
                                 boxShadow: [
                                   BoxShadow(
                                     color: Colors.grey.withOpacity(0.5),
@@ -114,43 +148,52 @@ class _ChatScreenState extends State<ChatScreen> {
                                     blurRadius: 5,
                                     offset: const Offset(0, 3),
                                   ),
-                                ]
-                            ),
-                            child: Text(
-                              data['message'] ?? '',
-                              style: TextStyle(
-                                fontSize: 20,
-                                color: isMessageFromAdmin
-                                    ? const Color.fromARGB(255, 243, 243, 243)
-                                    : Colors.black,
+                                ],
+                              ),
+                              child: Text(
+                                data['message'] ?? '',
+                                style: TextStyle(
+                                  fontSize: 16,
+                                  color: isMessageFromCustomer
+                                      ? Colors.white
+                                      : Colors.black,
+                                ),
                               ),
                             ),
-                          ),
-                        );
-                      },
-                    );
-                  },
-                ),
-              ),
-
-              // Input field
-              Padding(
-                padding: const EdgeInsets.all(8.0),
-                child: TextField(
-                  controller: _controller,
-                  decoration: InputDecoration(
-                    hintText: 'Type your reply...',
-                    suffixIcon: IconButton(
-                      icon: const Icon(Icons.send),
-                      onPressed: _sendMessage,
-                    ),
+                          );
+                        },
+                      );
+                    },
                   ),
                 ),
-              ),
-            ],
+
+                // Input field
+                Padding(
+                  padding: const EdgeInsets.all(8.0),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: TextField(
+                          controller: _controller,
+                          decoration: const InputDecoration(
+                            hintText: 'Type your message...',
+                            border: OutlineInputBorder(),
+                          ),
+                          onSubmitted: (_) => _sendMessage(),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      IconButton(
+                        icon: const Icon(Icons.send),
+                        onPressed: _sendMessage,
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
           ),
 
-          // Status menu
           if (_showStatusMenu)
             Positioned(
               top: 0,

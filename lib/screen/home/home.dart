@@ -3,19 +3,21 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:ui_satnetcom_customer_services/screen/chat/chat.dart';
 
 class HomeScreen extends StatefulWidget {
+  const HomeScreen({super.key});
+
   @override
   _HomeScreenState createState() => _HomeScreenState();
 }
 
 class _HomeScreenState extends State<HomeScreen> {
   Color getStatusColor(String status) {
-    // Make sure this function handles the actual status strings from Firestore ('Solved', 'Unresolved', etc.)
     return status == 'Solved' ? Colors.blue : Colors.red;
   }
 
+  // Add this logout dialog method
+
   @override
   Widget build(BuildContext context) {
-
     return Scaffold(
       backgroundColor: Colors.grey[300],
       appBar: AppBar(
@@ -35,7 +37,7 @@ class _HomeScreenState extends State<HomeScreen> {
             ),
             const SizedBox(height: 20),
 
-            // 🔹 StreamBuilder to read Firestore collection
+            // StreamBuilder to read Firestore collection
             Expanded(
               child: StreamBuilder<QuerySnapshot>(
                 stream: FirebaseFirestore.instance
@@ -54,23 +56,27 @@ class _HomeScreenState extends State<HomeScreen> {
                   return ListView.builder(
                     itemCount: complaints.length,
                     itemBuilder: (context, index) {
-                      
                       final doc = complaints[index];
-                      final ticketId = doc.id; // Firestore auto-document ID
+                      final ticketId =
+                          doc.id; // Use document ID instead of user_id field
                       final message = doc['text'];
-                      final date = (doc['timestamp'] as Timestamp?)?.toDate().toString() ?? 'No date';
-                      
-                      // ======= THIS IS THE KEY CHANGE! =======
-                      // Read the 'status' directly from the Firestore document
-                      final status = doc['status'] as String? ?? 'Unresolved'; // Default to 'Unresolved' if missing
-                      // =======================================
+                      final date =
+                          (doc['timestamp'] as Timestamp?)
+                              ?.toDate()
+                              .toString() ??
+                          'No date';
+                      final status = doc['status'] as String? ?? 'Unresolved';
+                      final userEmail =
+                          doc['user_id']; // Keep this for display if needed
 
                       return GestureDetector(
                         onTap: () {
                           Navigator.push(
                             context,
                             MaterialPageRoute(
-                              builder: (_) => ChatScreen(ticketNo: ticketId),
+                              builder: (_) => ChatScreen(
+                                ticketNo: ticketId,
+                              ), // Pass document ID
                             ),
                           );
                         },
@@ -90,26 +96,30 @@ class _HomeScreenState extends State<HomeScreen> {
                                       MainAxisAlignment.spaceBetween,
                                   children: [
                                     Text(
-                                      ticketId,
+                                      userEmail, // Display user email
                                       style: const TextStyle(
                                         fontWeight: FontWeight.bold,
                                         fontSize: 16,
                                       ),
                                     ),
-                                    Container(
-                                      padding: const EdgeInsets.symmetric(
-                                        horizontal: 12,
-                                        vertical: 6,
-                                      ),
-                                      decoration: BoxDecoration(
-                                        color: getStatusColor(status),
-                                        borderRadius: BorderRadius.circular(20),
-                                      ),
-                                      child: Text(
-                                        status,
-                                        style: const TextStyle(
-                                          color: Colors.white,
-                                          fontWeight: FontWeight.bold,
+                                    Flexible(
+                                      fit: FlexFit.loose,
+                                      child: Container(
+                                        width: 100,
+                                        padding: const EdgeInsets.symmetric(
+                                          horizontal: 12,
+                                          vertical: 6,
+                                        ),
+                                        decoration: BoxDecoration(
+                                          color: getStatusColor(status),
+                                          borderRadius: BorderRadius.circular(20),
+                                        ),
+                                        child: Text(
+                                          status,
+                                          style: const TextStyle(
+                                            color: Colors.white,
+                                            fontWeight: FontWeight.bold,
+                                          ),
                                         ),
                                       ),
                                     ),

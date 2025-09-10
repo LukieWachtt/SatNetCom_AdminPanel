@@ -59,7 +59,7 @@ class DefaultFirebaseOptions {
   );
 
   static const FirebaseOptions ios = FirebaseOptions(
-    apiKey: 'AIzaSyB7mOKhnKaWSrH_xUW9t0XGstcmKEnqFB0',
+    apiKey: 'AIzaSyCpFwRFN-XYFo3b4tnUghqMOKToQjsSyFQ',
     appId: '1:642030263409:ios:1b95ac83cc14481aaacfd0',
     messagingSenderId: '642030263409',
     projectId: 'snc-customer-service',
@@ -68,7 +68,7 @@ class DefaultFirebaseOptions {
   );
 
   static const FirebaseOptions macos = FirebaseOptions(
-    apiKey: 'AIzaSyB7mOKhnKaWSrH_xUW9t0XGstcmKEnqFB0',
+    apiKey: 'AIzaSyCpFwRFN-XYFo3b4tnUghqMOKToQjsSyFQ',
     appId: '1:642030263409:ios:1b95ac83cc14481aaacfd0',
     messagingSenderId: '642030263409',
     projectId: 'snc-customer-service',
@@ -85,4 +85,5 @@ class DefaultFirebaseOptions {
     storageBucket: 'snc-customer-service.firebasestorage.app',
     measurementId: 'G-SQ0GQL2ZPJ',
   );
+
 }
